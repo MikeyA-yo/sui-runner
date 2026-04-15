@@ -5,9 +5,14 @@ use crate::commands::{build::BuildArgs, check::CheckArgs, dashboard::DashboardAr
 #[command(
     name = "sui-runner",
     about = "A setup and utility CLI for the Sui ecosystem",
+    long_about = "sui-runner helps you set up, build, and manage projects on the Sui blockchain.\nRun any subcommand with --help for detailed usage.",
     version
 )]
 pub struct Cli {
+    /// Enable verbose output
+    #[arg(short, long, global = true)]
+    pub verbose: bool,
+
     #[command(subcommand)]
     pub command: Commands,
 }

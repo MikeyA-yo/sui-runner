@@ -9,11 +9,13 @@ use cli::{Cli, Commands};
 async fn main() -> Result<()> {
     let cli = Cli::parse();
 
+    let verbose = cli.verbose;
+
     match cli.command {
-        Commands::Init(args) => commands::init::run(args).await,
+        Commands::Init(args) => commands::init::run(args, verbose).await,
         Commands::Check(args) => commands::check::run(args).await,
         Commands::Wallet(args) => commands::wallet::run(args).await,
-        Commands::Build(args) => commands::build::run(args).await,
+        Commands::Build(args) => commands::build::run(args, verbose).await,
         Commands::Dashboard(args) => commands::dashboard::run(args).await,
     }
 }

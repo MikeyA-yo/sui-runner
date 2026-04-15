@@ -22,7 +22,7 @@ struct ProjectConfig {
     version: String,
 }
 
-pub async fn run(args: InitArgs) -> Result<()> {
+pub async fn run(args: InitArgs, verbose: bool) -> Result<()> {
     let cwd = std::env::current_dir()?;
     let project_name = args
         .name
@@ -38,6 +38,9 @@ pub async fn run(args: InitArgs) -> Result<()> {
 
     let config_path = PathBuf::from("sui-runner.json");
     let json = serde_json::to_string_pretty(&config)?;
+    if verbose {
+        println!("Writing config:\n{}", json);
+    }
     fs::write(&config_path, json).context("Failed to write sui-runner.json")?;
 
     println!("Created {}", config_path.display());

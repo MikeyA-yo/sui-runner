@@ -26,11 +26,15 @@ pub struct BuildArgs {
     pub filter: Option<String>,
 }
 
-pub async fn run(args: BuildArgs) -> Result<()> {
+pub async fn run(args: BuildArgs, verbose: bool) -> Result<()> {
     let path = args
         .path
         .canonicalize()
         .context("Package path does not exist")?;
+
+    if verbose {
+        println!("sui CLI args: move {} --path {}", if args.test { "test" } else { "build" }, path.display());
+    }
 
     if args.test {
         run_tests(&path, args.skip_fetch, args.filter.as_deref())
