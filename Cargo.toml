@@ -3,5 +3,20 @@ name = "sui-runner"
 version = "0.1.0"
 edition = "2024"
 
+[[bin]]
+name = "sui-runner"
+path = "src/main.rs"
+
 [dependencies]
+anyhow = "1.0.102"
 clap = { version = "4.6.0", features = ["derive"] }
+crossterm = "0.29"
+duct = "1.1.1"
+ratatui = "0.30.0"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.49.0", features = ["full"] }
+
+# Sui deps — comment these out if they block compilation while you sort them
+# sui-transaction-builder = "0.3.0"
+# sui-sdk-types = "0.3.0"
