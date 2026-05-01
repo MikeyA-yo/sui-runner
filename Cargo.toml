@@ -17,6 +17,5 @@ serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0"
 tokio = { version = "1.49.0", features = ["full"] }
 
-# Sui deps — comment these out if they block compilation while you sort them
 # sui-transaction-builder = "0.3.0"
 # sui-sdk-types = "0.3.0"
