@@ -1,4 +1,4 @@
-use anyhow::{Context, Error, Result, anyhow};
+use anyhow::{Context, Result, anyhow};
 use clap::Args;
 use duct::cmd;
 use serde::{Deserialize, Serialize};
@@ -52,7 +52,8 @@ pub async fn run(args: InitArgs, verbose: bool) -> Result<()> {
     let cmd_args = vec!["move", "new", project_name.as_str()];
     cmd("sui", cmd_args).run().expect("Command Failed");
     // out.stdout
-    let config_path = PathBuf::from("sui-runner.json");
+    let mut config_path = PathBuf::from(project_name);
+    config_path.push("sui-runner.json");
     let json = serde_json::to_string_pretty(&config)?;
     if verbose {
         println!("Writing config:\n{}", json);
