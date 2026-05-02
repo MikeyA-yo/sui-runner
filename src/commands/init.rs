@@ -58,7 +58,7 @@ pub async fn run(args: InitArgs, verbose: bool) -> Result<()> {
     let file_name = format!("{project_name}.move");
     pth_file.push(file_name);
     write_hello_sui(pth_file, &*project_name)?;
-    let mut config_path = PathBuf::from(project_name);
+    let mut config_path = PathBuf::from(project_name.clone());
     config_path.push("sui-runner.json");
     let json = serde_json::to_string_pretty(&config)?;
     if verbose {
@@ -67,7 +67,10 @@ pub async fn run(args: InitArgs, verbose: bool) -> Result<()> {
     fs::write(&config_path, json).context("Failed to write sui-runner.json")?;
 
     println!("Created {}", config_path.display());
-    println!("Done. Run `sui-runner check` to verify your toolchain.");
+    println!(
+        "Done. Run cd {} \nRun `sui-runner check` to verify your toolchain.",
+        &*project_name
+    );
 
     Ok(())
 }
