@@ -104,8 +104,15 @@ fn run_watch(path: &PathBuf, args: &BuildArgs) -> Result<()> {
     let (tx, rx) = mpsc::channel();
     let config = Config::default().with_poll_interval(Duration::from_millis(500));
     let mut watcher = PollWatcher::new(tx, config)?;
+    // main source folder
     let n_path = path.join(PathBuf::from("sources"));
     watcher.watch(&n_path, notify::RecursiveMode::Recursive)?;
+    // tests folder
+    let tests_path = path.join("tests");
+    if tests_path.exists() {
+        watcher.watch(&tests_path, notify::RecursiveMode::Recursive)?;
+    }
+    // toml file
     let toml_path = path.join("Move.toml");
     if toml_path.exists() {
         watcher.watch(&toml_path, notify::RecursiveMode::NonRecursive)?;
