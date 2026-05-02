@@ -2,10 +2,9 @@ use anyhow::{Context, Result, anyhow};
 use clap::Args;
 use duct::cmd;
 use serde::{Deserialize, Serialize};
-use std::fs;
+use std::fs::{self, OpenOptions};
+use std::io::Write;
 use std::path::{Path, PathBuf};
-use tokio::fs::OpenOptions;
-use tokio::io::AsyncWriteExt;
 
 #[derive(Args)]
 pub struct InitArgs {
@@ -58,8 +57,8 @@ pub async fn run(args: InitArgs, verbose: bool) -> Result<()> {
     pth_file.push("sources");
     let file_name = format!("{project_name}.move");
     pth_file.push(file_name);
-    write_hello_sui(pth_file, &*project_name).await?;
-    let mut config_path = PathBuf::from(project_name);
+    write_hello_sui(pth_file, &*project_name)?;
+    let mut config_path = PathBuf::from(project_name.clone());
     config_path.push("sui-runner.json");
     let json = serde_json::to_string_pretty(&config)?;
     if verbose {
@@ -68,13 +67,16 @@ pub async fn run(args: InitArgs, verbose: bool) -> Result<()> {
     fs::write(&config_path, json).context("Failed to write sui-runner.json")?;
 
     println!("Created {}", config_path.display());
-    println!("Done. Run `sui-runner check` to verify your toolchain.");
+    println!(
+        "Done. Run cd {} \nRun `sui-runner check` to verify your toolchain.",
+        &*project_name
+    );
 
     Ok(())
 }
 
-async fn write_hello_sui(path: PathBuf, name: &str) -> Result<()> {
-    let mut file_op = OpenOptions::new().append(true).open(path).await?;
+fn write_hello_sui(path: PathBuf, name: &str) -> Result<()> {
+    let mut file_op = OpenOptions::new().append(true).open(path)?;
     let hello_sui = format!(
         r#"
 module {name}::hello_sui;
@@ -86,7 +88,8 @@ public fun hello_world(): String {{
 }}
 "#
     );
-    file_op.write_all(hello_sui.as_bytes()).await?;
+    writeln!(file_op, "{}", hello_sui)?;
+    // file_op.write_all(hello_sui.as_bytes()).await?;
     Ok(())
 }
 
