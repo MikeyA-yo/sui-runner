@@ -1,7 +1,8 @@
 use anyhow::{Context, Result};
 use clap::Args;
 use duct::cmd;
-use std::path::PathBuf;
+use notify::{Config, PollWatcher, Watcher};
+use std::{path::PathBuf, sync::mpsc, time::Duration};
 
 #[derive(Args)]
 pub struct BuildArgs {
@@ -24,6 +25,10 @@ pub struct BuildArgs {
     /// (test only) filter tests by name substring
     #[arg(short, long, requires = "test")]
     pub filter: Option<String>,
+
+    /// Optional watch mode
+    #[arg(short, long)]
+    pub watch: bool,
 }
 
 pub async fn run(args: BuildArgs, verbose: bool) -> Result<()> {
@@ -33,13 +38,21 @@ pub async fn run(args: BuildArgs, verbose: bool) -> Result<()> {
         .context("Package path does not exist")?;
 
     if verbose {
-        println!("sui CLI args: move {} --path {}", if args.test { "test" } else { "build" }, path.display());
+        println!(
+            "sui CLI args: move {} --path {}",
+            if args.test { "test" } else { "build" },
+            path.display()
+        );
     }
 
-    if args.test {
-        run_tests(&path, args.skip_fetch, args.filter.as_deref())
+    if args.watch {
+        run_watch(&path, &args)
     } else {
-        run_build(&path, args.skip_fetch, args.doc)
+        if args.test {
+            run_tests(&path, args.skip_fetch, args.filter.as_deref())
+        } else {
+            run_build(&path, args.skip_fetch, args.doc)
+        }
     }
 }
 
@@ -83,4 +96,36 @@ fn run_tests(path: &PathBuf, skip_fetch: bool, filter: Option<&str>) -> Result<(
         .context("Failed to run `sui move test`. Is the Sui CLI installed?")?;
 
     Ok(())
+}
+
+fn run_watch(path: &PathBuf, args: &BuildArgs) -> Result<()> {
+    println!("Watching for file changes in {}......", path.display());
+    trigger_action(path, args)?;
+    let (tx, rx) = mpsc::channel();
+    let config = Config::default().with_poll_interval(Duration::from_millis(500));
+    let mut watcher = PollWatcher::new(tx, config)?;
+    let n_path = path.join(PathBuf::from("sources"));
+    watcher.watch(&n_path, notify::RecursiveMode::Recursive)?;
+    let toml_path = path.join("Move.toml");
+    if toml_path.exists() {
+        watcher.watch(&toml_path, notify::RecursiveMode::NonRecursive)?;
+    }
+    for res in rx {
+        match res {
+            Ok(_) => {
+                println!("\nChange detected! Re-running...");
+                let _ = trigger_action(path, args);
+            }
+            Err(e) => return Err(anyhow::anyhow!("Watch error: {:?}", e)),
+        }
+    }
+    Ok(())
+}
+// Helper to decide whether to run build or test inside the loop
+fn trigger_action(path: &PathBuf, args: &BuildArgs) -> Result<()> {
+    if args.test {
+        run_tests(path, args.skip_fetch, args.filter.as_deref())
+    } else {
+        run_build(path, args.skip_fetch, args.doc)
+    }
 }
