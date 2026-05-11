@@ -51,7 +51,7 @@ pub async fn run(args: InitArgs, verbose: bool) -> Result<()> {
     };
 
     let cmd_args = vec!["move", "new", project_name.as_str()];
-    cmd("sui", cmd_args).run().expect("Command Failed");
+    cmd("sui", cmd_args).run().context("Command Failed")?;
     // out.stdout
     let mut pth_file = PathBuf::from(&*project_name);
     pth_file.push("sources");
