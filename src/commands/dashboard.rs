@@ -5,7 +5,6 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use duct::cmd;
 use ratatui::{
     layout::{Constraint, Direction, Layout},
     style::{Color, Modifier, Style},
@@ -17,6 +16,9 @@ use serde::Deserialize;
 use std::{
     fs,
     io::{self, Stdout},
+    process::{Command, Stdio},
+    sync::mpsc,
+    thread,
     time::Duration,
 };
 
@@ -42,21 +44,23 @@ struct DashboardState {
 }
 
 impl DashboardState {
+    fn loading() -> Self {
+        DashboardState {
+            active_address: "Loading…".to_string(),
+            active_env: "Loading…".to_string(),
+            project: ProjectConfig::default(),
+            last_error: None,
+        }
+    }
+
     fn load() -> Self {
         let project = fs::read_to_string("sui-runner.json")
             .ok()
             .and_then(|s| serde_json::from_str(&s).ok())
             .unwrap_or_default();
 
-        let active_address = cmd!("sui", "client", "active-address")
-            .read()
-            .map(|s| s.trim().to_string())
-            .unwrap_or_else(|_| "— (sui CLI not found)".to_string());
-
-        let active_env = cmd!("sui", "client", "active-env")
-            .read()
-            .map(|s| s.trim().to_string())
-            .unwrap_or_else(|_| "— (sui CLI not found)".to_string());
+        let active_address = run_sui_cmd(&["client", "active-address"]);
+        let active_env = run_sui_cmd(&["client", "active-env"]);
 
         DashboardState {
             active_address,
@@ -65,6 +69,26 @@ impl DashboardState {
             last_error: None,
         }
     }
+}
+
+fn run_sui_cmd(args: &[&str]) -> String {
+    let owned: Vec<String> = args.iter().map(|s| s.to_string()).collect();
+    let (tx, rx) = mpsc::channel();
+    thread::spawn(move || {
+        let result = Command::new("sui")
+            .args(&owned)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::null())
+            .output()
+            .ok()
+            .and_then(|o| String::from_utf8(o.stdout).ok())
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .unwrap_or_else(|| "— (sui CLI not found)".to_string());
+        let _ = tx.send(result);
+    });
+    rx.recv_timeout(Duration::from_secs(5))
+        .unwrap_or_else(|_| "— (timeout)".to_string())
 }
 
 pub async fn run(args: DashboardArgs) -> Result<()> {
@@ -89,7 +113,11 @@ fn run_loop(
     terminal: &mut Terminal<ratatui::backend::CrosstermBackend<Stdout>>,
     refresh_secs: u64,
 ) -> Result<()> {
-    let mut state = DashboardState::load();
+    // Draw immediately so the UI is visible while data loads
+    let mut state = DashboardState::loading();
+    terminal.draw(|frame| draw(frame, &state))?;
+    state = DashboardState::load();
+
     let poll_timeout = Duration::from_millis(250);
 
     loop {
