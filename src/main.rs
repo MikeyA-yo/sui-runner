@@ -17,5 +17,6 @@ async fn main() -> Result<()> {
         Commands::Wallet(args) => commands::wallet::run(args).await,
         Commands::Build(args) => commands::build::run(args, verbose).await,
         Commands::Dashboard(args) => commands::dashboard::run(args).await,
+        Commands::Deploy(args) => commands::deploy::run(args).await,
     }
 }

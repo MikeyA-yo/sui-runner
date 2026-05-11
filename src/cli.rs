@@ -1,5 +1,8 @@
+use crate::commands::{
+    build::BuildArgs, check::CheckArgs, dashboard::DashboardArgs, deploy::DeployArgs,
+    init::InitArgs, wallet::WalletArgs,
+};
 use clap::{Parser, Subcommand};
-use crate::commands::{build::BuildArgs, check::CheckArgs, dashboard::DashboardArgs, init::InitArgs, wallet::WalletArgs};
 
 #[derive(Parser)]
 #[command(
@@ -29,4 +32,6 @@ pub enum Commands {
     Build(BuildArgs),
     /// Live TUI dashboard — active address, network, project info
     Dashboard(DashboardArgs),
+    /// Deploy or Publish a Move package to the Sui network
+    Deploy(DeployArgs),
 }
