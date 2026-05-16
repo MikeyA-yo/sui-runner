@@ -21,6 +21,18 @@ Run `sui-runner check` after installing to confirm everything is in place.
 
 ## Installation
 
+### Linux / macOS
+
+```bash
+curl -fsSL https://suirunner.vercel.app/install.sh | bash
+```
+
+### Windows — PowerShell
+
+```powershell
+irm https://suirunner.vercel.app/install.ps1 | iex
+```
+
 ### From source
 
 ```bash
